@@ -905,13 +905,21 @@ class FractionQuestionGenerator{
 const canvas=document.getElementById('game-canvas');
 const ctx=canvas.getContext('2d');
 let DPR=Math.min(window.devicePixelRatio||1,2);
-let viewW=window.innerWidth, viewH=window.innerHeight;
+let viewW = 1920, viewH = 1080;
 function resizeCanvas(){
-  viewW=window.innerWidth; viewH=window.innerHeight;
-  DPR=Math.min(window.devicePixelRatio||1,2);
-  canvas.width=viewW*DPR; canvas.height=viewH*DPR;
-  canvas.style.width=viewW+'px'; canvas.style.height=viewH+'px';
-  ctx.setTransform(DPR,0,0,DPR,0,0);
+
+    viewW = 1920;
+    viewH = 1080;
+
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+    canvas.width = viewW * DPR;
+    canvas.height = viewH * DPR;
+
+    canvas.style.width = viewW + 'px';
+    canvas.style.height = viewH + 'px';
+
+    ctx.setTransform(DPR,0,0,DPR,0,0);
 }
 window.addEventListener('resize',resizeCanvas); resizeCanvas();
 
