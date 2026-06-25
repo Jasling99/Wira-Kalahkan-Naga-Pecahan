@@ -1,0 +1,1791 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Wira Pecahan — Kalahkan Naga Pecahan</title>
+<style>
+/* ============================================================
+   WIRA PECAHAN · FRACTION HERO (Malay Edition)
+   Design language: Imperial China — ink-brush strokes, red
+   lanterns, jade green, gold foil. Signature element: lantern
+   checkpoints that ignite gold when a question is answered.
+   ============================================================ */
+:root{
+  --red:       #C0392B;
+  --red-deep:  #922B21;
+  --red-light: #E74C3C;
+  --jade:      #1A6B4A;
+  --jade-mid:  #27AE60;
+  --jade-light:#A9DFBF;
+  --gold:      #F0C040;
+  --gold-deep: #D4A017;
+  --ink:       #1C1C2E;
+  --ink-soft:  #3D3D5C;
+  --parch:     #FFF8E7;
+  --parch-edge:#E8C97A;
+  --sky1:      #87CEEB;
+  --sky2:      #E0F4FF;
+  --shadow:    rgba(28,28,46,0.4);
+  --white:     #FFFFFF;
+}
+*{ box-sizing:border-box; -webkit-tap-highlight-color:transparent;
+   user-select:none; -webkit-user-select:none; }
+html,body{
+  margin:0; padding:0; width:100%; height:100%; overflow:hidden;
+  background:var(--sky1);
+  font-family:'PingFang SC','Hiragino Sans GB','Microsoft YaHei',
+              'Comic Sans MS',system-ui,sans-serif;
+  touch-action:none;
+}
+/* ── LAYOUT ── */
+#game-root{ position:relative; width:100vw; height:100vh; overflow:hidden; }
+#game-canvas{ display:block; width:100%; height:100%; touch-action:none; }
+
+/* ── HUD ── */
+#hud{
+  position:absolute; top:0; left:0; right:0;
+  display:flex; justify-content:space-between; align-items:flex-start;
+  padding:10px 12px; pointer-events:none; z-index:30;
+}
+.hud-panel{
+  background:linear-gradient(180deg,var(--parch),#F5E6BC);
+  border:3px solid var(--parch-edge);
+  border-radius:14px; padding:6px 12px;
+  box-shadow:0 5px 0 var(--shadow),0 5px 12px rgba(0,0,0,.25);
+  display:flex; align-items:center; gap:6px;
+  pointer-events:auto;
+}
+.hud-heart{ font-size:22px; filter:drop-shadow(1px 2px 1px rgba(0,0,0,.2));
+            transition:transform .2s; }
+.hud-heart.lost{ opacity:.22; transform:scale(.8); }
+.hud-label{ font-weight:800; font-size:12px; color:var(--ink);
+            text-transform:uppercase; letter-spacing:.5px; }
+#hud-stats{
+  position:absolute; top:72px; left:12px; z-index:30;
+  background:linear-gradient(180deg,var(--parch),#F5E6BC);
+  border:3px solid var(--parch-edge); border-radius:14px;
+  padding:5px 12px; display:flex; align-items:center; gap:8px;
+  box-shadow:0 5px 0 var(--shadow);
+}
+#hud-stats span{ font-weight:800; font-size:14px; color:var(--ink); }
+#sound-toggle{
+  position:absolute; top:10px; right:12px;
+  background:linear-gradient(180deg,var(--parch),#F5E6BC);
+  border:3px solid var(--parch-edge); border-radius:50%;
+  width:48px; height:48px; font-size:20px; cursor:pointer;
+  box-shadow:0 5px 0 var(--shadow); z-index:40;
+  display:flex; align-items:center; justify-content:center;
+}
+#sound-toggle:active{ transform:translateY(3px); box-shadow:0 2px 0 var(--shadow); }
+
+/* ── CONTROLS ── */
+#controls{
+  position:absolute; bottom:0; left:0; right:0;
+  display:flex; justify-content:space-between; align-items:flex-end;
+  padding:14px; z-index:30; pointer-events:none;
+}
+.ctrl-btn{
+  pointer-events:auto; width:68px; height:68px; border-radius:50%;
+  border:4px solid var(--parch-edge);
+  background:radial-gradient(circle at 35% 30%,#fff,#FFE9B8 70%);
+  box-shadow:0 7px 0 var(--shadow),0 7px 14px rgba(0,0,0,.28);
+  font-size:28px; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; touch-action:none; transition:transform .1s;
+}
+.ctrl-btn:active,.ctrl-btn.pressed{ transform:translateY(5px);
+  box-shadow:0 2px 0 var(--shadow); }
+#dpad{ display:flex; gap:12px; }
+#jump-btn{
+  width:82px; height:82px; font-size:32px;
+  background:radial-gradient(circle at 35% 30%,#fff3c4,var(--gold) 75%);
+}
+
+/* ── NAME INPUT SCREEN ── */
+#name-screen{
+  position:absolute; inset:0; z-index:95;
+  background:linear-gradient(135deg,var(--red-deep) 0%,#6B1A1A 50%,var(--ink) 100%);
+  display:flex; flex-direction:column; align-items:center;
+  justify-content:center; padding:20px; text-align:center;
+}
+#name-screen.hidden{ display:none; }
+.name-lantern{ font-size:52px; margin-bottom:8px;
+  animation:lanternSway 2s ease-in-out infinite; }
+@keyframes lanternSway{
+  0%,100%{ transform:rotate(-5deg); }
+  50%{ transform:rotate(5deg); }
+}
+#name-title{
+  font-size:clamp(24px,6vw,38px); font-weight:900; color:var(--gold);
+  text-shadow:0 3px 6px rgba(0,0,0,.5); margin-bottom:6px;
+  line-height:1.2;
+}
+#name-sub{ font-size:14px; color:rgba(255,255,255,.8);
+  margin-bottom:24px; font-weight:600; }
+#name-input{
+  width:min(90vw,340px); padding:14px 18px; font-size:20px;
+  font-weight:800; border:4px solid var(--gold);
+  border-radius:16px; background:rgba(255,255,255,.95);
+  color:var(--ink); text-align:center; margin-bottom:16px;
+  outline:none;
+}
+#name-input::placeholder{ color:#aaa; font-weight:400; }
+#name-start-btn{
+  background:linear-gradient(180deg,var(--gold),var(--gold-deep));
+  border:4px solid #9A7400; border-radius:18px;
+  padding:14px 36px; font-size:22px; font-weight:900;
+  color:var(--ink); cursor:pointer;
+  box-shadow:0 6px 0 #6B5000; touch-action:manipulation;
+}
+#name-start-btn:active{ transform:translateY(5px); box-shadow:0 1px 0 #6B5000; }
+#name-leaderboard-btn{
+  margin-top:12px; background:transparent;
+  border:3px solid rgba(255,255,255,.5); border-radius:14px;
+  padding:10px 24px; font-size:16px; font-weight:700;
+  color:rgba(255,255,255,.85); cursor:pointer;
+}
+
+/* ── START SCREEN ── */
+#start-screen{
+  position:absolute; inset:0; z-index:90;
+  background:linear-gradient(180deg,var(--sky1),var(--sky2) 60%,var(--jade-light) 100%);
+  display:flex; flex-direction:column; align-items:center;
+  justify-content:center; text-align:center; padding:20px;
+}
+#start-screen.hidden{ display:none; }
+#start-emojis{ font-size:48px; margin-bottom:10px;
+  animation:floatUD 2.4s ease-in-out infinite; }
+@keyframes floatUD{ 0%,100%{ transform:translateY(0); }
+  50%{ transform:translateY(-10px); } }
+#start-title{
+  font-size:clamp(26px,7vw,42px); font-weight:900; color:var(--ink);
+  text-shadow:3px 3px 0 var(--gold),-1px -1px 0 #fff;
+  margin-bottom:6px; line-height:1.15;
+}
+#start-sub{ font-size:clamp(13px,3vw,17px); font-weight:700;
+  color:var(--jade); margin-bottom:20px; max-width:480px; }
+#start-player-name{
+  font-size:18px; font-weight:800; color:var(--red);
+  background:rgba(255,255,255,.8); border-radius:12px;
+  padding:8px 20px; margin-bottom:16px;
+}
+#start-btn{
+  background:linear-gradient(180deg,var(--gold),var(--gold-deep));
+  border:4px solid #9A7400; border-radius:22px;
+  padding:16px 40px; font-size:24px; font-weight:900;
+  color:var(--ink); cursor:pointer; box-shadow:0 6px 0 #6B5000;
+  touch-action:manipulation;
+}
+#start-btn:active{ transform:translateY(5px); box-shadow:0 1px 0 #6B5000; }
+#start-howto{
+  margin-top:18px; font-size:12px; color:var(--ink); font-weight:600;
+  max-width:400px; background:rgba(255,255,255,.55);
+  border-radius:12px; padding:8px 14px;
+}
+
+/* ── QUESTION MODAL ── */
+#question-overlay{
+  position:absolute; inset:0;
+  background:rgba(28,28,46,.75); display:none;
+  align-items:center; justify-content:center;
+  z-index:100; backdrop-filter:blur(3px);
+}
+#question-overlay.active{ display:flex; }
+#question-card{
+  background:linear-gradient(180deg,var(--parch),#F7E9C4);
+  border:5px solid var(--parch-edge); border-radius:24px;
+  padding:18px 20px; width:min(88vw,400px);
+  max-height:90vh; overflow-y:auto;
+  box-shadow:0 12px 0 var(--shadow),0 18px 36px rgba(0,0,0,.45);
+  text-align:center; animation:popIn .32s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes popIn{ 0%{ transform:scale(.4) rotate(-6deg); opacity:0; }
+  100%{ transform:scale(1) rotate(0); opacity:1; } }
+#question-title{
+  font-size:15px; font-weight:800; color:var(--red);
+  margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;
+}
+#question-text{
+  font-size:22px; font-weight:800; color:var(--ink);
+  margin:8px 0 14px; line-height:1.7;
+}
+.fraction-visual{
+  display:inline-flex; flex-direction:column; align-items:center;
+  vertical-align:middle; margin:2px 8px;
+}
+.fraction-visual .num{
+  border-bottom:3px solid var(--ink); padding:0 10px 4px;
+  min-width:30px; text-align:center;
+}
+.fraction-visual .den{ padding:4px 10px 0; min-width:30px; text-align:center; }
+#hint-area{ margin-bottom:10px; }
+#answer-grid{ display:grid; grid-template-columns:1fr; gap:10px; }
+.answer-btn{
+  background:linear-gradient(180deg,#fff,var(--jade-light));
+  border:4px solid var(--jade); border-radius:14px;
+  padding:16px 10px; font-size:24px; font-weight:800;
+  color:var(--ink); cursor:pointer;
+  box-shadow:0 5px 0 var(--jade); width:100%;
+  transition:transform .1s, box-shadow .1s; touch-action:manipulation;
+}
+.answer-btn:active{ transform:translateY(4px); box-shadow:0 1px 0 var(--jade); }
+.answer-btn.correct{
+  background:linear-gradient(180deg,#C8F7C5,#7FD97F);
+  border-color:#2F6B2F; animation:correctPulse .4s ease;
+}
+.answer-btn.wrong{
+  background:linear-gradient(180deg,#FFC9C9,#FF8A8A);
+  border-color:#B33; animation:shake .4s ease;
+}
+@keyframes correctPulse{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.1); } }
+@keyframes shake{ 0%,100%{ transform:translateX(0); }
+  20%{ transform:translateX(-8px); } 40%{ transform:translateX(8px); }
+  60%{ transform:translateX(-6px); } 80%{ transform:translateX(6px); } }
+#question-progress{ margin-top:12px; font-size:13px;
+  font-weight:700; color:var(--jade); }
+
+/* ── VICTORY SCREEN ── */
+#victory-screen{
+  position:absolute; inset:0;
+  background:linear-gradient(180deg,#1A0A2E,#4A1A6E 50%,#8A3AAF 100%);
+  display:none; align-items:center; justify-content:center; z-index:80;
+  overflow:hidden;
+}
+#victory-screen.active{ display:flex; }
+#fireworks-canvas{ position:absolute; inset:0; width:100%; height:100%;
+  pointer-events:none; }
+#victory-card{
+  position:relative; z-index:5;
+  background:linear-gradient(180deg,var(--parch),#F7E9C4);
+  border:6px solid var(--gold); border-radius:28px;
+  padding:22px 26px; width:min(92vw,440px); text-align:center;
+  box-shadow:0 14px 0 rgba(0,0,0,.3),0 22px 44px rgba(0,0,0,.5);
+  animation:victoryDrop .7s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes victoryDrop{
+  0%{ transform:translateY(-180px) scale(.6); opacity:0; }
+  60%{ transform:translateY(16px) scale(1.04); opacity:1; }
+  100%{ transform:translateY(0) scale(1); }
+}
+#trophy-emoji{
+  font-size:72px; display:inline-block;
+  animation:trophyBounce 1.4s ease-in-out infinite;
+  filter:drop-shadow(0 6px 5px rgba(0,0,0,.3));
+}
+@keyframes trophyBounce{
+  0%,100%{ transform:translateY(0) rotate(-3deg); }
+  50%{ transform:translateY(-12px) rotate(3deg); }
+}
+#victory-title{
+  font-size:28px; font-weight:900;
+  background:linear-gradient(90deg,var(--red),var(--gold),var(--jade),#9B59B6);
+  background-size:300% 100%; -webkit-background-clip:text;
+  background-clip:text; color:transparent;
+  animation:rainbowShift 3s linear infinite;
+  margin:6px 0 14px;
+}
+@keyframes rainbowShift{ 0%{ background-position:0 50%; }
+  100%{ background-position:300% 50%; } }
+#victory-stats{
+  display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px;
+}
+.stat-box{
+  background:rgba(255,255,255,.6); border:3px solid var(--parch-edge);
+  border-radius:12px; padding:8px 5px;
+}
+.stat-box .stat-icon{ font-size:20px; }
+.stat-box .stat-value{ font-size:20px; font-weight:900; color:var(--ink); }
+.stat-box .stat-name{ font-size:10px; font-weight:700; color:var(--jade);
+  text-transform:uppercase; letter-spacing:.5px; }
+#dancing-rabbit{ font-size:40px; display:inline-block; margin:4px 0 10px;
+  animation:rabbitDance .6s ease-in-out infinite alternate; }
+@keyframes rabbitDance{
+  0%{ transform:translateX(-12px) rotate(-10deg); }
+  100%{ transform:translateX(12px) rotate(10deg); }
+}
+
+/* Name entry on victory */
+#victory-name-entry{ margin:10px 0; }
+#victory-name-entry input{
+  width:100%; padding:10px 14px; font-size:17px; font-weight:700;
+  border:3px solid var(--gold); border-radius:12px;
+  text-align:center; margin-bottom:8px; outline:none;
+}
+#save-score-btn{
+  background:linear-gradient(180deg,var(--gold),var(--gold-deep));
+  border:3px solid #9A7400; border-radius:14px;
+  padding:12px 24px; font-size:17px; font-weight:900;
+  color:var(--ink); cursor:pointer; box-shadow:0 4px 0 #6B5000; width:100%;
+  touch-action:manipulation;
+}
+#save-score-btn:active{ transform:translateY(3px); box-shadow:0 1px 0 #6B5000; }
+#saved-msg{ font-size:14px; color:var(--jade); font-weight:700;
+  display:none; margin-top:6px; }
+
+#play-again-btn{
+  background:linear-gradient(180deg,var(--red-light),var(--red-deep));
+  border:4px solid var(--red-deep); border-radius:18px;
+  padding:14px 28px; font-size:20px; font-weight:900;
+  color:white; cursor:pointer; box-shadow:0 5px 0 #7A1010;
+  text-shadow:0 2px 2px rgba(0,0,0,.3); width:100%; margin-top:8px;
+  touch-action:manipulation;
+}
+#play-again-btn:active{ transform:translateY(4px); box-shadow:0 1px 0 #7A1010; }
+
+/* ── LEADERBOARD SCREEN ── */
+#leaderboard-screen{
+  position:absolute; inset:0; z-index:85;
+  background:linear-gradient(180deg,var(--red-deep),#1C1C2E);
+  display:none; flex-direction:column; align-items:center;
+  padding:24px 16px; overflow-y:auto;
+}
+#leaderboard-screen.active{ display:flex; }
+#lb-title{
+  font-size:28px; font-weight:900; color:var(--gold);
+  text-shadow:0 3px 6px rgba(0,0,0,.5); margin-bottom:4px;
+}
+#lb-sub{ font-size:13px; color:rgba(255,255,255,.7); margin-bottom:18px; }
+#lb-table{ width:min(92vw,420px); }
+.lb-row{
+  display:grid; grid-template-columns:40px 1fr 70px 80px;
+  align-items:center; gap:8px; padding:10px 14px;
+  border-radius:12px; margin-bottom:6px;
+  background:rgba(255,255,255,.08); color:white; font-weight:700;
+}
+.lb-row.lb-header{
+  background:rgba(240,192,64,.15); color:var(--gold);
+  font-size:11px; text-transform:uppercase; letter-spacing:.5px;
+}
+.lb-row.lb-top1{ background:rgba(240,192,64,.25); }
+.lb-row.lb-top2{ background:rgba(192,192,192,.18); }
+.lb-row.lb-top3{ background:rgba(205,127,50,.18); }
+.lb-rank{ font-size:18px; text-align:center; }
+.lb-name{ font-size:15px; overflow:hidden; text-overflow:ellipsis;
+  white-space:nowrap; }
+.lb-score{ font-size:15px; text-align:right; color:var(--gold); }
+.lb-acc{ font-size:13px; text-align:right; color:var(--jade-light); }
+.lb-empty{
+  text-align:center; color:rgba(255,255,255,.5);
+  padding:30px; font-size:15px;
+}
+#lb-close-btn{
+  margin-top:18px; background:transparent;
+  border:3px solid rgba(255,255,255,.5); border-radius:14px;
+  padding:12px 32px; font-size:17px; font-weight:700;
+  color:rgba(255,255,255,.85); cursor:pointer;
+  touch-action:manipulation;
+}
+#lb-clear-btn{
+  margin-top:8px; background:transparent;
+  border:2px solid rgba(255,50,50,.4); border-radius:12px;
+  padding:8px 20px; font-size:13px; font-weight:600;
+  color:rgba(255,100,100,.7); cursor:pointer;
+}
+
+/* ── GAME OVER ── */
+#gameover-screen{
+  position:absolute; inset:0;
+  background:linear-gradient(180deg,#3A1414,#5C1F1F 60%,#2A0F0F);
+  display:none; align-items:center; justify-content:center; z-index:80;
+}
+#gameover-screen.active{ display:flex; }
+#gameover-card{
+  background:linear-gradient(180deg,var(--parch),#F7E9C4);
+  border:6px solid #8A3A3A; border-radius:28px;
+  padding:24px 28px; width:min(88vw,380px); text-align:center;
+  box-shadow:0 14px 0 rgba(0,0,0,.3),0 22px 44px rgba(0,0,0,.5);
+  animation:victoryDrop .6s ease-out;
+}
+#gameover-title{ font-size:26px; font-weight:900; color:var(--red);
+  margin:10px 0 6px; }
+#gameover-sub{ font-size:14px; color:var(--ink); margin-bottom:16px;
+  font-weight:600; }
+#retry-btn{
+  background:linear-gradient(180deg,var(--jade-mid),var(--jade));
+  border:4px solid #1F4A35; border-radius:18px;
+  padding:14px 28px; font-size:20px; font-weight:900; color:white;
+  cursor:pointer; box-shadow:0 5px 0 #143523;
+  text-shadow:0 2px 2px rgba(0,0,0,.3); width:100%;
+  touch-action:manipulation;
+}
+#retry-btn:active{ transform:translateY(4px); box-shadow:0 1px 0 #143523; }
+
+/* ── LEVEL BANNER TOAST ── */
+#level-toast{
+  position:absolute; top:130px; left:50%; transform:translateX(-50%);
+  background:linear-gradient(135deg,var(--red),var(--red-deep));
+  border:3px solid var(--gold); border-radius:20px;
+  padding:10px 28px; font-size:18px; font-weight:900;
+  color:var(--gold); z-index:60; white-space:nowrap;
+  box-shadow:0 6px 20px rgba(0,0,0,.4);
+  opacity:0; transition:opacity .3s;
+  pointer-events:none;
+}
+#level-toast.show{ opacity:1; }
+
+/* ── RESPONSIVE ── */
+@media(max-width:480px){
+  .hud-heart{ font-size:18px; }
+  .hud-panel{ padding:5px 8px; border-radius:12px; }
+  .ctrl-btn{ width:58px; height:58px; font-size:24px; }
+  #jump-btn{ width:72px; height:72px; font-size:28px; }
+  #question-text{ font-size:20px; }
+  .answer-btn{ font-size:20px; padding:14px 8px; }
+}
+@media(max-height:440px){
+  #controls{ padding:6px 14px; }
+  .ctrl-btn{ width:52px; height:52px; font-size:20px; }
+  #jump-btn{ width:62px; height:62px; font-size:24px; }
+}
+</style>
+</head>
+<body>
+<div id="game-root">
+
+<!-- ══ NAME INPUT SCREEN ══ -->
+<div id="name-screen">
+  <div class="name-lantern">🏮</div>
+  <div id="name-title">Wira Pecahan<br>Kalahkan Naga Pecahan</div>
+  <div id="name-sub">Masukkan nama kamu dan mulakan pengembaraan!</div>
+  <input id="name-input" type="text" maxlength="16"
+    placeholder="Nama kamu…" autocomplete="off" spellcheck="false">
+  <button id="name-start-btn">🐉 Mula Bermain</button>
+  <button id="name-leaderboard-btn">🏆 Papan Kedudukan</button>
+</div>
+
+<!-- ══ START SCREEN ══ -->
+<div id="start-screen" class="hidden">
+  <div id="start-emojis">🐰🐉</div>
+  <div id="start-title">Wira Pecahan<br>Kalahkan Naga Pecahan</div>
+  <div id="start-sub">Lompat merentasi padang, bandingkan pecahan, kalahkan naga!</div>
+  <div id="start-player-name"></div>
+  <button id="start-btn">▶ Mula Pengembaraan</button>
+  <div id="start-howto">🏃 Kekunci anak panah / A-D untuk bergerak &nbsp;•&nbsp; ⬆ Ruang / Atas untuk melompat &nbsp;•&nbsp; Kumpul syiling dan capai naga!</div>
+</div>
+
+<!-- ══ CANVAS ══ -->
+<canvas id="game-canvas"></canvas>
+
+<!-- ══ HUD ══ -->
+<div id="hud">
+  <div class="hud-panel">
+    <span class="hud-label">Kamu</span>
+    <div id="player-hearts"></div>
+  </div>
+  <div class="hud-panel">
+    <span class="hud-label">Naga</span>
+    <div id="dragon-hearts"></div>
+  </div>
+</div>
+<div id="hud-stats">
+  <span>🪙 <span id="coin-count">0</span></span>
+  <span style="width:2px;height:16px;background:var(--parch-edge);display:inline-block;margin:0 4px;"></span>
+  <span>⭐ <span id="score-count">0</span></span>
+  <span style="width:2px;height:16px;background:var(--parch-edge);display:inline-block;margin:0 4px;"></span>
+  <span>❓ <span id="q-progress">0/15</span></span>
+</div>
+<button id="sound-toggle" title="Togol Muzik">🔊</button>
+
+<!-- ══ CONTROLS ══ -->
+<div id="controls">
+  <div id="dpad">
+    <div class="ctrl-btn" id="btn-left">◀</div>
+    <div class="ctrl-btn" id="btn-right">▶</div>
+  </div>
+  <div class="ctrl-btn" id="jump-btn">⬆</div>
+</div>
+
+<!-- ══ LEVEL TOAST ══ -->
+<div id="level-toast"></div>
+
+<!-- ══ QUESTION MODAL ══ -->
+<div id="question-overlay">
+  <div id="question-card">
+    <div id="question-title">🐉 Naga Pecahan Menuntut Jawapan!</div>
+    <div id="question-text"></div>
+    <div id="hint-area" style="display:none;"></div>
+    <div id="answer-grid"></div>
+    <div id="question-progress"></div>
+  </div>
+</div>
+
+<!-- ══ VICTORY SCREEN ══ -->
+<div id="victory-screen">
+  <canvas id="fireworks-canvas"></canvas>
+  <div id="victory-card">
+    <div id="trophy-emoji">🏆</div>
+    <div id="victory-title">Wira Pecahan!</div>
+    <div id="dancing-rabbit">🐰</div>
+    <div id="victory-stats">
+      <div class="stat-box">
+        <div class="stat-icon">⭐</div>
+        <div class="stat-value" id="final-score">0</div>
+        <div class="stat-name">Jumlah Mata</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-icon">✅</div>
+        <div class="stat-value" id="final-correct">0</div>
+        <div class="stat-name">Jawapan Betul</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-icon">❌</div>
+        <div class="stat-value" id="final-wrong">0</div>
+        <div class="stat-name">Jawapan Salah</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-icon">🪙</div>
+        <div class="stat-value" id="final-coins">0</div>
+        <div class="stat-name">Syiling</div>
+      </div>
+    </div>
+    <div class="stat-box" style="margin-bottom:12px;">
+      <div class="stat-icon">🎯</div>
+      <div class="stat-value" id="final-accuracy">0%</div>
+      <div class="stat-name">Ketepatan</div>
+    </div>
+    <!-- Name & save -->
+    <div id="victory-name-entry">
+      <input id="victory-name-input" type="text" maxlength="16"
+        placeholder="Masukkan nama untuk simpan markah…" autocomplete="off">
+      <button id="save-score-btn">💾 Simpan Markah ke Papan Kedudukan</button>
+      <div id="saved-msg">✅ Sudah Disimpan!</div>
+    </div>
+    <button id="view-lb-btn" style="background:transparent;border:3px solid var(--gold);
+      border-radius:14px;padding:10px 20px;font-size:15px;font-weight:800;
+      color:var(--ink);cursor:pointer;width:100%;margin-top:6px;">
+      🏆 Papan Kedudukan
+    </button>
+    <button id="play-again-btn">🔄 Main Semula</button>
+  </div>
+</div>
+
+<!-- ══ LEADERBOARD SCREEN ══ -->
+<div id="leaderboard-screen">
+  <div id="lb-title">🏆 Papan Kedudukan</div>
+  <div id="lb-sub">Wira Pecahan — 10 Teratas</div>
+  <div id="lb-table"></div>
+  <button id="lb-close-btn">← Kembali</button>
+  <button id="lb-clear-btn">🗑 Padam Rekod</button>
+</div>
+
+<!-- ══ GAME OVER ══ -->
+<div id="gameover-screen">
+  <div id="gameover-card">
+    <div style="font-size:56px;">💔🐉</div>
+    <div id="gameover-title">Cuba Lagi!</div>
+    <div id="gameover-sub">Naga terlalu kuat kali ini. Latih pecahan kamu dan cuba lagi!</div>
+    <button id="retry-btn">🔄 Cuba Semula</button>
+  </div>
+</div>
+
+</div><!-- #game-root -->
+
+<script>
+/* ================================================================
+   WIRA PECAHAN · FRACTION HERO (Malay Edition)
+   Single-file HTML — suitable for Netlify hosting.
+   All audio: Web Audio API only (no external files).
+   Leaderboard: localStorage (persists across sessions, same device).
+   ================================================================ */
+(function(){
+'use strict';
+
+/* ── CONSTANTS ─────────────────────────────────────────────── */
+const GRAVITY          = 0.62;
+const MOVE_SPEED       = 4.6;
+const JUMP_FORCE       = -13.5;
+const GROUND_FRICTION  = 0.82;
+const MAX_PLAYER_HEARTS= 5;
+const MAX_DRAGON_HEARTS= 15;
+const TOTAL_QUESTIONS  = 15;
+const WORLD_WIDTH      = 1400;
+const LB_KEY           = 'fractionHero_leaderboard_v1';
+
+const GameState = {
+  NAME:'name', START:'start', PLAYING:'playing',
+  BOSS:'boss', QUESTION:'question', VICTORY:'victory', GAMEOVER:'gameover'
+};
+
+/* ── LEADERBOARD ───────────────────────────────────────────── */
+const Leaderboard = {
+  load(){
+    try{ return JSON.parse(localStorage.getItem(LB_KEY)||'[]'); }
+    catch(e){ return []; }
+  },
+  save(entries){
+    try{ localStorage.setItem(LB_KEY, JSON.stringify(entries)); }
+    catch(e){}
+  },
+  add(name, score, correct, wrong, coins){
+    const entries = this.load();
+    const total   = correct + wrong;
+    const acc     = total > 0 ? Math.round(correct/total*100) : 100;
+    entries.push({
+      name: name.trim().substring(0,16) || 'Wira Tanpa Nama',
+      score, correct, wrong, coins, acc,
+      date: new Date().toLocaleDateString('zh-CN')
+    });
+    entries.sort((a,b)=> b.score-a.score || b.acc-a.acc);
+    this.save(entries.slice(0,10));
+  },
+  render(containerId){
+    const el      = document.getElementById(containerId);
+    const entries = this.load();
+    if(!entries.length){
+      el.innerHTML = '<div class="lb-empty">Belum ada rekod.<br>Jadilah Wira Pecahan pertama! 🏆</div>';
+      return;
+    }
+    const medals = ['🥇','🥈','🥉'];
+    el.innerHTML =
+      `<div class="lb-row lb-header">
+         <div>Kedudukan</div><div>Nama</div><div>Markah</div><div>Ketepatan</div>
+       </div>` +
+      entries.map((e,i)=>`
+        <div class="lb-row ${i<3?'lb-top'+(i+1):''}">
+          <div class="lb-rank">${medals[i]||i+1}</div>
+          <div class="lb-name">${escHtml(e.name)}</div>
+          <div class="lb-score">${e.score}</div>
+          <div class="lb-acc">${e.acc}%</div>
+        </div>`).join('');
+  },
+  clear(){ this.save([]); }
+};
+
+function escHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ── AUDIO ENGINE ──────────────────────────────────────────── */
+class AudioEngine{
+  constructor(){ this.ctx=null; this.master=null; this.music=null;
+    this.sfx=null; this.enabled=true; this.track=null; this.timer=null; }
+  init(){
+    if(this.ctx) return;
+    const AC=window.AudioContext||window.webkitAudioContext;
+    this.ctx=new AC();
+    this.master=this.ctx.createGain(); this.master.gain.value=0.85;
+    this.master.connect(this.ctx.destination);
+    this.music=this.ctx.createGain(); this.music.gain.value=0.32;
+    this.music.connect(this.master);
+    this.sfx=this.ctx.createGain(); this.sfx.gain.value=0.6;
+    this.sfx.connect(this.master);
+  }
+  resume(){ if(this.ctx&&this.ctx.state==='suspended') this.ctx.resume(); }
+  setEnabled(v){ this.enabled=v;
+    if(this.master) this.master.gain.setTargetAtTime(v?.85:0,this.ctx.currentTime,.05); }
+  now(){ return this.ctx.currentTime; }
+  tone(freq,t,dur,{type='sine',gain=.5,attack=.01,decay=.05,
+                   sustain=.7,release=.1,dest=null,detune=0}={}){
+    if(!this.ctx) return;
+    const o=this.ctx.createOscillator(), e=this.ctx.createGain();
+    o.type=type; o.frequency.setValueAtTime(freq,t); o.detune.value=detune;
+    e.gain.setValueAtTime(0,t);
+    e.gain.linearRampToValueAtTime(gain,t+attack);
+    e.gain.linearRampToValueAtTime(gain*sustain,t+attack+decay);
+    e.gain.setValueAtTime(gain*sustain,Math.max(t+attack+decay,t+dur-release));
+    e.gain.linearRampToValueAtTime(.0001,t+dur);
+    o.connect(e); e.connect(dest||this.sfx); o.start(t); o.stop(t+dur+.02);
+  }
+  sweep(f0,f1,t,dur,{type='sine',gain=.4,dest=null}={}){
+    if(!this.ctx) return;
+    const o=this.ctx.createOscillator(), e=this.ctx.createGain();
+    o.type=type; o.frequency.setValueAtTime(f0,t);
+    o.frequency.exponentialRampToValueAtTime(Math.max(f1,1),t+dur);
+    e.gain.setValueAtTime(gain,t);
+    e.gain.exponentialRampToValueAtTime(.001,t+dur);
+    o.connect(e); e.connect(dest||this.sfx); o.start(t); o.stop(t+dur+.02);
+  }
+  noise(t,dur,{gain=.3,freq=2000,dest=null}={}){
+    if(!this.ctx) return;
+    const n=Math.floor(this.ctx.sampleRate*dur);
+    const buf=this.ctx.createBuffer(1,n,this.ctx.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<n;i++) d[i]=(Math.random()*2-1)*(1-i/n);
+    const src=this.ctx.createBufferSource(), f=this.ctx.createBiquadFilter();
+    f.type='lowpass'; f.frequency.value=freq;
+    const e=this.ctx.createGain();
+    e.gain.setValueAtTime(gain,t);
+    e.gain.exponentialRampToValueAtTime(.001,t+dur);
+    src.buffer=buf; src.connect(f); f.connect(e); e.connect(dest||this.sfx);
+    src.start(t);
+  }
+  playJump(){ if(!this.enabled||!this.ctx) return;
+    this.sweep(280,720,this.now(),.22,{type:'square',gain:.25}); }
+  playCoin(){ if(!this.enabled||!this.ctx) return;
+    const t=this.now();
+    this.tone(988,t,.1,{type:'square',gain:.22,attack:.002,decay:.02,sustain:.6,release:.06});
+    this.tone(1318,t+.08,.16,{type:'square',gain:.22,attack:.002,decay:.02,sustain:.6,release:.1}); }
+  playCorrect(){ if(!this.enabled||!this.ctx) return;
+    const t=this.now();
+    [523.25,659.25,783.99,1046.5].forEach((f,i)=>
+      this.tone(f,t+i*.09,.22,{type:'triangle',gain:.3,attack:.005})); }
+  playWrong(){ if(!this.enabled||!this.ctx) return;
+    const t=this.now();
+    this.tone(220,t,.18,{type:'sawtooth',gain:.22});
+    this.tone(164.8,t+.13,.26,{type:'sawtooth',gain:.22}); }
+  playMonster(){ if(!this.enabled||!this.ctx) return;
+    const t=this.now();
+    this.sweep(140,60,t,.4,{type:'sawtooth',gain:.3});
+    this.noise(t,.3,{gain:.15,freq:400}); }
+  playHeartLoss(){ if(!this.enabled||!this.ctx) return;
+    this.sweep(500,120,this.now(),.3,{type:'square',gain:.25}); }
+  playDragonRoar(){ if(!this.enabled||!this.ctx) return;
+    const t=this.now();
+    this.sweep(90,240,t,.5,{type:'sawtooth',gain:.35});
+    this.sweep(240,70,t+.45,.5,{type:'sawtooth',gain:.3});
+    this.noise(t,.7,{gain:.18,freq:600}); }
+  playDragonDefeated(){ if(!this.enabled||!this.ctx) return;
+    const t=this.now();
+    this.sweep(300,40,t,1.1,{type:'sawtooth',gain:.35});
+    this.noise(t,1,{gain:.25,freq:300}); }
+  playFirework(){ if(!this.enabled||!this.ctx) return;
+    const t=this.now();
+    this.noise(t,.35,{gain:.18,freq:3000});
+    this.sweep(1200,200,t,.4,{type:'sine',gain:.15}); }
+  stopMusic(){ clearTimeout(this.timer); this.timer=null; this.track=null; }
+  playBgMusic(){
+    this.stopMusic(); this.track='bg';
+    const scale=[261.6,293.7,329.6,392,440,523.3], bass=[130.8,146.8,164.8,196];
+    let s=0;
+    const loop=()=>{
+      if(this.track!=='bg'||!this.ctx) return;
+      const t=this.now();
+      if(this.enabled){
+        this.tone(scale[Math.floor(Math.random()*scale.length)],t,.32,
+          {type:'triangle',gain:.12,attack:.01,dest:this.music});
+        if(s%2===0) this.tone(bass[Math.floor(s/2)%bass.length],t,.5,
+          {type:'sine',gain:.18,dest:this.music});
+        if(s%4===1) this.noise(t,.05,{gain:.06,freq:6000,dest:this.music});
+      }
+      s++; this.timer=setTimeout(loop,320);
+    };
+    loop();
+  }
+  playBossMusic(){
+    this.stopMusic(); this.track='boss';
+    const riff=[98,98,116.5,110,130.8,110,98,87.3];
+    const stab=[196,233.1,277.2]; let s=0;
+    const loop=()=>{
+      if(this.track!=='boss'||!this.ctx) return;
+      const t=this.now();
+      if(this.enabled){
+        this.tone(riff[s%riff.length],t,.22,
+          {type:'sawtooth',gain:.22,attack:.005,dest:this.music});
+        if(s%4===0) stab.forEach(f=>this.tone(f,t,.18,
+          {type:'square',gain:.08,dest:this.music}));
+        if(s%2===1) this.noise(t,.08,{gain:.1,freq:1200,dest:this.music});
+      }
+      s++; this.timer=setTimeout(loop,200);
+    };
+    loop();
+  }
+  playVictoryMusic(){
+    this.stopMusic(); this.track='victory';
+    const mel=[523.3,659.3,784,1046.5,784,1046.5,1318.5]; let s=0;
+    const loop=()=>{
+      if(this.track!=='victory'||!this.ctx) return;
+      const t=this.now();
+      if(this.enabled){
+        const n=mel[s%mel.length];
+        this.tone(n,t,.4,{type:'triangle',gain:.22,dest:this.music});
+        this.tone(n/2,t,.4,{type:'sine',gain:.12,dest:this.music});
+      }
+      s++; this.timer=setTimeout(loop,230);
+    };
+    loop();
+  }
+  playGameOverMusic(){
+    this.stopMusic(); this.track='gameover';
+    const t=this.now();
+    if(this.enabled){
+      [392,349.2,311.1,261.6].forEach((f,i)=>
+        this.tone(f,t+i*.35,.45,{type:'sine',gain:.25,dest:this.music}));
+    }
+    this.timer=setTimeout(()=>{ this.track=null; },1600);
+  }
+}
+
+const audio = new AudioEngine();
+
+/* ── FRACTION QUESTION GENERATOR ──────────────────────────── */
+class FractionQuestionGenerator{
+  constructor(){
+    this.levels=[
+      // Tahap 1 — Mudah (penyebut sama)
+      [
+        {n1:1,d1:3,n2:2,d2:3},   // 1/3 vs 2/3
+        {n1:1,d1:4,n2:3,d2:4},   // 1/4 vs 3/4
+        {n1:2,d1:5,n2:4,d2:5},   // 2/5 vs 4/5
+        {n1:1,d1:6,n2:5,d2:6},   // 1/6 vs 5/6
+        {n1:3,d1:8,n2:7,d2:8},   // 3/8 vs 7/8
+      ],
+      // Tahap 2 — Sederhana (pengangka sama)
+      [
+        {n1:1,d1:2,n2:1,d2:4},   // 1/2 vs 1/4
+        {n1:2,d1:5,n2:2,d2:7},   // 2/5 vs 2/7
+        {n1:3,d1:4,n2:3,d2:8},   // 3/4 vs 3/8
+        {n1:7,d1:8,n2:7,d2:9},   // 7/8 vs 7/9
+        {n1:4,d1:5,n2:4,d2:9},   // 4/5 vs 4/9
+      ],
+      // Tahap 3 — Susah (penyebut berlainan, ada petunjuk)
+      [
+        {n1:4,d1:5,n2:3,d2:8, hint:'Tukar ke perpuluhan: 4÷5=0.80, 3÷8=0.375'},
+        {n1:2,d1:3,n2:3,d2:5, hint:'Tukar ke perpuluhan: 2÷3≈0.67, 3÷5=0.60'},
+        {n1:5,d1:6,n2:7,d2:9, hint:'Tukar ke perpuluhan: 5÷6≈0.83, 7÷9≈0.78'},
+        {n1:3,d1:7,n2:2,d2:5, hint:'Tukar ke perpuluhan: 3÷7≈0.43, 2÷5=0.40'},
+        {n1:5,d1:8,n2:2,d2:3, hint:'Tukar ke perpuluhan: 5÷8=0.63, 2÷3≈0.67'},
+      ],
+    ];
+    this.bonusPool=[
+      {n1:1,d1:4,n2:1,d2:8,  hint:null},
+      {n1:3,d1:5,n2:3,d2:7,  hint:null},
+      {n1:2,d1:4,n2:2,d2:6,  hint:null},
+      {n1:5,d1:6,n2:3,d2:4,  hint:'Tukar ke perpuluhan: 5÷6≈0.83, 3÷4=0.75'},
+      {n1:1,d1:3,n2:2,d2:8,  hint:'Tukar ke perpuluhan: 1÷3≈0.33, 2÷8=0.25'},
+      {n1:7,d1:10,n2:3,d2:4, hint:'Tukar ke perpuluhan: 7÷10=0.70, 3÷4=0.75'},
+    ];
+    this.bonusIndex=0;
+    this.currentLevel=0; this.indexInLevel=0; this.totalAsked=0;
+  }
+  levelName(l){ return['🌟 Tahap 1: Mudah','⭐⭐ Tahap 2: Sederhana','🔥 Tahap 3: Susah'][l]||''; }
+  fracText(n,d){ return `${n}/${d}`; }
+  fracHTML(n,d){
+    return `<span class="fraction-visual"><span class="num">${n}</span><span class="den">${d}</span></span>`;
+  }
+  shuffle(a){ const r=a.slice();
+    for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];}
+    return r; }
+  buildOptions(n1,d1,n2,d2){ return this.shuffle([this.fracText(n1,d1),this.fracText(n2,d2)]); }
+  generate(){
+    let pair,lvl,idx,isBonus=false;
+    if(this.totalAsked<15){
+      lvl=this.currentLevel; idx=this.indexInLevel;
+      pair=this.levels[lvl][idx];
+    } else {
+      isBonus=true; lvl=2;
+      idx=this.bonusIndex%this.bonusPool.length;
+      pair=this.bonusPool[idx];
+    }
+    const{n1,d1,n2,d2,hint}=pair;
+    const v1=n1/d1, v2=n2/d2;
+    const equal=Math.abs(v1-v2)<.0001;
+    const askBigger=equal||(this.totalAsked%2===0);
+    let text,answer;
+    if(equal){
+      text=`Pecahan manakah yang <strong>lebih besar</strong>?<br>${this.fracHTML(n1,d1)} atau ${this.fracHTML(n2,d2)}`;
+      answer=`${this.fracText(n1,d1)}|${this.fracText(n2,d2)}`;
+    } else if(askBigger){
+      const bigger=v1>v2?this.fracText(n1,d1):this.fracText(n2,d2);
+      text=`Pecahan manakah yang <strong>lebih besar</strong>?<br>${this.fracHTML(n1,d1)} atau ${this.fracHTML(n2,d2)}`;
+      answer=bigger;
+    } else {
+      const smaller=v1<v2?this.fracText(n1,d1):this.fracText(n2,d2);
+      text=`Pecahan manakah yang <strong>lebih kecil</strong>?<br>${this.fracHTML(n1,d1)} atau ${this.fracHTML(n2,d2)}`;
+      answer=smaller;
+    }
+    const q={
+      key:isBonus?`bonus-${this.bonusIndex}`:`L${lvl+1}-Q${idx+1}`,
+      level:lvl, levelName:isBonus?'🎯 Soalan Tambahan':this.levelName(lvl),
+      qNum:isBonus?this.bonusIndex+1:idx+1,
+      total:this.totalAsked+1, text, options:this.buildOptions(n1,d1,n2,d2),
+      answer, equal, hint:lvl===2?hint:null, v1,v2,n1,d1,n2,d2,
+    };
+    this.totalAsked++;
+    if(isBonus){ this.bonusIndex++; }
+    else{
+      this.indexInLevel++;
+      if(this.indexInLevel>=5){ this.indexInLevel=0;
+        this.currentLevel=Math.min(2,this.currentLevel+1); }
+    }
+    return q;
+  }
+}
+
+/* ── CANVAS & RESPONSIVE ───────────────────────────────────── */
+const canvas=document.getElementById('game-canvas');
+const ctx=canvas.getContext('2d');
+let DPR=Math.min(window.devicePixelRatio||1,2);
+let viewW=window.innerWidth, viewH=window.innerHeight;
+function resizeCanvas(){
+  viewW=window.innerWidth; viewH=window.innerHeight;
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  canvas.width=viewW*DPR; canvas.height=viewH*DPR;
+  canvas.style.width=viewW+'px'; canvas.style.height=viewH+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+window.addEventListener('resize',resizeCanvas); resizeCanvas();
+
+/* ── INPUT ─────────────────────────────────────────────────── */
+const Input={left:false,right:false,jumpPressed:false,jumpHeld:false};
+window.addEventListener('keydown',e=>{
+  if(['ArrowLeft','a','A'].includes(e.key)) Input.left=true;
+  if(['ArrowRight','d','D'].includes(e.key)) Input.right=true;
+  if(['ArrowUp','w','W',' '].includes(e.key)){
+    if(!Input.jumpHeld) Input.jumpPressed=true;
+    Input.jumpHeld=true; e.preventDefault();
+  }
+});
+window.addEventListener('keyup',e=>{
+  if(['ArrowLeft','a','A'].includes(e.key)) Input.left=false;
+  if(['ArrowRight','d','D'].includes(e.key)) Input.right=false;
+  if(['ArrowUp','w','W',' '].includes(e.key)) Input.jumpHeld=false;
+});
+function bindBtn(el,dn,up){
+  const s=e=>{e.preventDefault();dn();el.classList.add('pressed');};
+  const e2=e=>{e.preventDefault();up();el.classList.remove('pressed');};
+  el.addEventListener('mousedown',s); el.addEventListener('touchstart',s,{passive:false});
+  el.addEventListener('mouseup',e2); el.addEventListener('mouseleave',e2);
+  el.addEventListener('touchend',e2,{passive:false});
+  el.addEventListener('touchcancel',e2,{passive:false});
+}
+bindBtn(document.getElementById('btn-left'),()=>Input.left=true,()=>Input.left=false);
+bindBtn(document.getElementById('btn-right'),()=>Input.right=true,()=>Input.right=false);
+bindBtn(document.getElementById('jump-btn'),
+  ()=>{if(!Input.jumpHeld)Input.jumpPressed=true;Input.jumpHeld=true;},
+  ()=>{Input.jumpHeld=false;});
+
+/* ── ENTITIES ──────────────────────────────────────────────── */
+class Platform{ constructor(x,y,w,h){ this.x=x;this.y=y;this.w=w;this.h=h; } }
+
+class Coin{
+  constructor(x,y){ this.x=x;this.y=y;this.r=12;
+    this.collected=false; this.bobOffset=Math.random()*Math.PI*2; this.baseY=y; }
+  update(t){ this.y=this.baseY+Math.sin(t*3+this.bobOffset)*5; }
+}
+
+class Obstacle{
+  constructor(x,y,range){
+    this.x=x;this.y=y;this.startX=x;this.w=34;this.h=30;
+    this.range=range||60;this.dir=1;this.speed=1.1;
+    this.bobT=Math.random()*Math.PI*2;this.alive=true;
+  }
+  update(){
+    if(!this.alive) return;
+    this.x+=this.dir*this.speed;
+    if(this.x>this.startX+this.range||this.x<this.startX-this.range) this.dir*=-1;
+    this.bobT+=.08;
+  }
+}
+
+class Player{
+  constructor(x,y){
+    this.x=x;this.y=y;this.w=40;this.h=44;
+    this.vx=0;this.vy=0;this.onGround=false;
+    this.facing=1;this.animT=0;this.invincibleTimer=0;this.squash=1;
+  }
+  update(platforms){
+    if(Input.left){this.vx=-MOVE_SPEED;this.facing=-1;}
+    else if(Input.right){this.vx=MOVE_SPEED;this.facing=1;}
+    else{this.vx*=GROUND_FRICTION;if(Math.abs(this.vx)<.05)this.vx=0;}
+    if(Input.jumpPressed&&this.onGround){
+      this.vy=JUMP_FORCE;this.onGround=false;
+      audio.playJump();this.squash=1.3;
+    }
+    Input.jumpPressed=false;
+    this.vy+=GRAVITY; if(this.vy>18)this.vy=18;
+    this.x+=this.vx; this.y+=this.vy;
+    if(this.x<10)this.x=10;
+    if(this.x>WORLD_WIDTH-this.w-10)this.x=WORLD_WIDTH-this.w-10;
+    this.onGround=false;
+    for(const p of platforms){
+      if(this.x+this.w*.7>p.x&&this.x+this.w*.3<p.x+p.w){
+        const fy=this.y+this.h;
+        if(this.vy>=0&&fy>=p.y&&fy<=p.y+p.h+this.vy+2){
+          this.y=p.y-this.h;this.vy=0;this.onGround=true;
+        }
+      }
+    }
+    // Fall off → respawn, no heart loss
+    if(this.y>900){ this.y=350;this.x=Math.max(60,this.x-80);
+      this.vy=0;this.vx=0; }
+    this.animT+=Math.abs(this.vx)*.04+(this.onGround?0:.05);
+    this.squash+=(1-this.squash)*.2;
+    if(this.invincibleTimer>0)this.invincibleTimer--;
+  }
+}
+
+class Dragon{
+  constructor(x,y){
+    this.x=x;this.y=y;this.w=140;this.h=130;
+    this.hearts=MAX_DRAGON_HEARTS;this.bobT=0;
+    this.shakeT=0;this.hitFlash=0;this.defeated=false;
+  }
+  update(){ this.bobT+=.04;
+    if(this.shakeT>0)this.shakeT--; if(this.hitFlash>0)this.hitFlash--; }
+  hit(){
+    this.hearts=Math.max(0,this.hearts-1);
+    this.shakeT=18;this.hitFlash=14;
+    if(this.hearts<=0)this.defeated=true;
+  }
+}
+
+class Particle{
+  constructor(x,y,vx,vy,color,life,size){
+    this.x=x;this.y=y;this.vx=vx;this.vy=vy;
+    this.color=color;this.life=life;this.maxLife=life;this.size=size||4;
+  }
+  update(){this.x+=this.vx;this.y+=this.vy;this.vy+=.15;this.life--;}
+  get alive(){return this.life>0;}
+}
+
+/* ── LEVEL BUILD ───────────────────────────────────────────── */
+function buildLevel(){
+  const platforms=[],coins=[],obstacles=[],groundY=520;
+  const segs=[{w:340},{gap:70},{w:260},{gap:60},{w:300},{gap:70},{w:WORLD_WIDTH}];
+  let cur=0;
+  for(const s of segs){
+    if(s.gap){cur+=s.gap;continue;}
+    platforms.push(new Platform(cur,groundY,s.w,400)); cur+=s.w;
+  }
+  const floaters=[[260,420,110],[590,390,110],[940,415,110],[450,340,90],[820,345,90]];
+  for(const[x,y,w]of floaters) platforms.push(new Platform(x,y,w,26));
+  for(let i=0;i<18;i++){
+    const x=120+i*70,y=groundY-55-Math.sin(i*.4)*40;
+    coins.push(new Coin(x,y));
+  }
+  for(const[x,y,w]of floaters){
+    coins.push(new Coin(x+w*.25,y-38)); coins.push(new Coin(x+w*.75,y-38));
+  }
+  for(const x of[390,700,1050]) obstacles.push(new Obstacle(x,groundY-30,60));
+  // 15 checkpoints evenly spaced
+  const checkpoints=[];
+  for(let i=0;i<15;i++) checkpoints.push(Math.round(120+i*85));
+  return{platforms,coins,obstacles,groundY,checkpoints};
+}
+
+function buildBackground(){
+  const clouds=[];
+  for(let i=0;i<10;i++) clouds.push({x:Math.random()*WORLD_WIDTH*1.4,y:40+Math.random()*120,s:.6+Math.random()*.8});
+  const hillsFar=[];
+  for(let i=0;i<6;i++) hillsFar.push({x:i*320,w:300+Math.random()*80});
+  const hillsNear=[];
+  for(let i=0;i<8;i++) hillsNear.push({x:i*240,w:210+Math.random()*70});
+  const trees=[];
+  for(let i=0;i<14;i++) trees.push({x:80+i*110+Math.random()*40,s:.7+Math.random()*.5});
+  return{clouds,hillsFar,hillsNear,trees};
+}
+
+/* ── GAME MANAGER ──────────────────────────────────────────── */
+class GameManager{
+  constructor(){
+    this.state=GameState.NAME;
+    this.playerName='Wira';
+    this.level=buildLevel(); this.bg=buildBackground();
+    this.player=new Player(60,400);
+    this.dragon=new Dragon(WORLD_WIDTH-160,130);
+    this.questionGen=new FractionQuestionGenerator();
+    this.particles=[];
+    this.camX=0; this.timeT=0;
+    this.coinsCollected=0; this.score=0;
+    this.correctCount=0; this.wrongCount=0;
+    this.questionsAsked=0; this.currentQuestion=null;
+    this.checkpointsPassed=new Array(TOTAL_QUESTIONS).fill(false);
+    this.dragonHasRoared=false;
+    this.shakeTimer=0; this.shakeMag=0;
+    this._playerHearts=MAX_PLAYER_HEARTS;
+    this._lastBonusTime=0;
+    this.prevLevelShown=-1;
+    this.lastFrameTime=performance.now();
+  }
+
+  /* HUD */
+  syncHeartsHUD(){
+    const pe=document.getElementById('player-hearts');
+    const de=document.getElementById('dragon-hearts');
+    pe.innerHTML='';
+    const ph=this._playerHearts??MAX_PLAYER_HEARTS;
+    for(let i=0;i<MAX_PLAYER_HEARTS;i++){
+      const s=document.createElement('span');
+      s.className='hud-heart'+(i>=ph?' lost':'');
+      s.textContent='❤️'; pe.appendChild(s);
+    }
+    de.innerHTML=
+      `<span style="font-size:18px">💚</span>`+
+      `<span style="font-weight:900;font-size:14px;color:${this.dragon.hearts>0?'#1A6B4A':'#C0392B'}">`+
+      `${this.dragon.hearts}/${MAX_DRAGON_HEARTS}</span>`;
+    document.getElementById('coin-count').textContent=this.coinsCollected;
+    document.getElementById('score-count').textContent=this.score;
+    const qe=document.getElementById('q-progress');
+    if(qe) qe.textContent=`${this.correctCount}/${TOTAL_QUESTIONS}`;
+  }
+
+  initHearts(){ this._playerHearts=MAX_PLAYER_HEARTS; }
+
+  start(){
+    this.initHearts(); this.state=GameState.PLAYING;
+    audio.playBgMusic(); this.syncHeartsHUD();
+  }
+
+  reset(){
+    this.level=buildLevel(); this.bg=buildBackground();
+    this.player=new Player(60,400);
+    this.dragon=new Dragon(WORLD_WIDTH-160,130);
+    this.questionGen=new FractionQuestionGenerator();
+    this.particles=[]; this.camX=0; this.timeT=0;
+    this.coinsCollected=0; this.score=0;
+    this.correctCount=0; this.wrongCount=0;
+    this.questionsAsked=0; this.currentQuestion=null;
+    this.checkpointsPassed=new Array(TOTAL_QUESTIONS).fill(false);
+    this.dragonHasRoared=false;
+    this._lastBonusTime=0; this.prevLevelShown=-1;
+    this.initHearts(); this.state=GameState.PLAYING;
+    document.getElementById('victory-screen').classList.remove('active');
+    document.getElementById('gameover-screen').classList.remove('active');
+    this.syncHeartsHUD(); audio.playBgMusic();
+  }
+
+  loseHeart(){
+    if(this.player.invincibleTimer>0) return;
+    this._playerHearts=Math.max(0,this._playerHearts-1);
+    this.player.invincibleTimer=90;
+    this.triggerShake(8,16); audio.playHeartLoss();
+    this.syncHeartsHUD();
+    if(this._playerHearts<=0) this.triggerGameOver();
+  }
+
+  triggerShake(mag,dur){ this.shakeMag=mag; this.shakeTimer=dur; }
+
+  addCoin(c){
+    c.collected=true; this.coinsCollected++; this.score+=10;
+    audio.playCoin();
+    for(let i=0;i<8;i++){
+      const a=Math.random()*Math.PI*2;
+      this.particles.push(new Particle(c.x,c.y,Math.cos(a)*2,Math.sin(a)*2-1,'#F0C040',30,4));
+    }
+    this.syncHeartsHUD();
+  }
+
+  /* LEVEL BANNER TOAST */
+  showLevelToast(lvl){
+    const names=['🌟 Tahap 1: Mudah','⭐⭐ Tahap 2: Sederhana','🔥 Tahap 3: Susah','🎯 Soalan Tambahan'];
+    const el=document.getElementById('level-toast');
+    el.textContent=names[lvl]||'';
+    el.classList.add('show');
+    setTimeout(()=>el.classList.remove('show'),2200);
+  }
+
+  /* QUESTION FLOW */
+  triggerQuestion(){
+    if(this.dragon.defeated) return;
+    if(this.state===GameState.QUESTION) return;
+    this.prevState=this.state;
+    this.state=GameState.QUESTION;
+    this.currentQuestion=this.questionGen.generate();
+    // Show level banner on first question of each level
+    const lvl=this.currentQuestion.level;
+    const isBonus=this.currentQuestion.key.startsWith('bonus');
+    if(isBonus&&this.prevLevelShown<3){ this.prevLevelShown=3; this.showLevelToast(3); }
+    else if(!isBonus&&lvl!==this.prevLevelShown){ this.prevLevelShown=lvl; this.showLevelToast(lvl); }
+    this.showQuestionUI(this.currentQuestion);
+  }
+
+  showQuestionUI(q){
+    const overlay=document.getElementById('question-overlay');
+    document.getElementById('question-text').innerHTML=q.text;
+    document.getElementById('answer-grid').innerHTML='';
+    const hl=this.dragon.hearts;
+    const he='💚'.repeat(hl)+'🖤'.repeat(MAX_DRAGON_HEARTS-hl);
+    const ql=q.levelName.includes('Tambahan')?`Soalan Tambahan <strong>${q.qNum}</strong>`:
+              `Soalan <strong>${q.qNum}/5</strong>`;
+    document.getElementById('question-progress').innerHTML=
+      `${q.levelName} | ${ql} | Naga: ${he}`;
+
+    // Hint button (level 3 + bonus)
+    const ha=document.getElementById('hint-area');
+    if(q.hint){
+      ha.style.display='block';
+      const hb=document.createElement('button');
+      hb.innerHTML='💡 Petunjuk';
+      hb.style.cssText='background:var(--gold);border:3px solid var(--gold-deep);border-radius:12px;'+
+        'padding:8px 16px;font-size:14px;font-weight:800;cursor:pointer;'+
+        'color:var(--ink);margin-bottom:8px;width:100%;';
+      const hc=document.createElement('div');
+      hc.style.cssText='display:none;margin-bottom:8px;';
+      hc.innerHTML=`
+        <div style="display:flex;justify-content:center;gap:24px;align-items:center;flex-wrap:wrap;margin-bottom:6px;">
+          ${[{n:q.n1,d:q.d1,v:q.v1},{n:q.n2,d:q.d2,v:q.v2}].map(p=>`
+            <div style="text-align:center;">
+              <canvas class="pie-hint" data-n="${p.n}" data-d="${p.d}"
+                width="72" height="72" style="display:block;margin:0 auto 4px;"></canvas>
+              <div style="font-size:16px;font-weight:900;">${p.n}/${p.d}</div>
+              <div style="font-size:12px;color:#666;">= ${p.v.toFixed(2)}</div>
+            </div>`).join('<div style="font-size:20px;font-weight:800;color:#aaa;">vs</div>')}
+        </div>
+        <div style="font-size:12px;color:#555;font-weight:600;">${q.hint}</div>`;
+      hb.addEventListener('click',()=>{
+        const showing=hc.style.display!=='none';
+        hc.style.display=showing?'none':'block';
+        hb.innerHTML=showing?'💡 Petunjuk':'🙈 Sorok Petunjuk';
+        if(!showing) hc.querySelectorAll('.pie-hint').forEach(c=>{
+          this.drawPie(c,+c.dataset.n,+c.dataset.d);
+        });
+      });
+      ha.innerHTML=''; ha.appendChild(hb); ha.appendChild(hc);
+    } else { ha.style.display='none'; ha.innerHTML=''; }
+
+    // Answer buttons
+    q.options.forEach(opt=>{
+      const btn=document.createElement('button');
+      btn.className='answer-btn';
+      btn.innerHTML=this.optHTML(opt);
+      btn.addEventListener('click',()=>this.answerQuestion(opt,btn));
+      document.getElementById('answer-grid').appendChild(btn);
+    });
+
+    overlay.classList.add('active');
+    document.getElementById('controls').style.display='none';
+  }
+
+  drawPie(canvas,n,d){
+    const c2=canvas.getContext('2d'),cx=36,cy=36,r=32;
+    c2.clearRect(0,0,72,72);
+    const sa=(Math.PI*2)/d;
+    for(let i=0;i<d;i++){
+      const s=-Math.PI/2+i*sa, e=s+sa;
+      c2.beginPath(); c2.moveTo(cx,cy); c2.arc(cx,cy,r,s,e); c2.closePath();
+      c2.fillStyle=i<n?'#C0392B':'#eee'; c2.fill();
+      c2.strokeStyle='#fff'; c2.lineWidth=1.5; c2.stroke();
+    }
+    c2.beginPath(); c2.arc(cx,cy,r,0,Math.PI*2);
+    c2.strokeStyle='#aaa'; c2.lineWidth=2; c2.stroke();
+  }
+
+  optHTML(opt){
+    const p=opt.split('/');
+    if(p.length===2&&!isNaN(p[0])&&!isNaN(p[1]))
+      return `<span class="fraction-visual" style="font-size:1.1em">
+                <span class="num">${p[0]}</span>
+                <span class="den">${p[1]}</span></span>`;
+    return opt;
+  }
+
+  answerQuestion(selected,btnEl){
+    document.querySelectorAll('.answer-btn').forEach(b=>b.style.pointerEvents='none');
+    const q=this.currentQuestion;
+    const correct=q.equal?q.answer.split('|').includes(selected):selected===q.answer;
+    this.questionsAsked++;
+    if(correct){
+      btnEl.classList.add('correct');
+      this.correctCount++; this.score+=50;
+      audio.playCorrect(); this.dragon.hit(); audio.playMonster();
+    } else {
+      btnEl.classList.add('wrong');
+      this.wrongCount++; audio.playWrong();
+      document.querySelectorAll('.answer-btn').forEach(b=>{
+        const ca=q.answer.split('|');
+        if(ca.some(a=>b.innerHTML.includes(a.split('/')[0])&&b.innerHTML.includes(a.split('/')[1])))
+          b.classList.add('correct');
+      });
+      this.loseHeart();
+    }
+    this.syncHeartsHUD();
+    setTimeout(()=>{
+      document.getElementById('question-overlay').classList.remove('active');
+      document.getElementById('controls').style.display='';
+      if(this.dragon.defeated){ this.triggerVictory(); return; }
+      if(this._playerHearts<=0) return;
+      this.state=this.prevState||GameState.PLAYING;
+    },correct?1100:1700);
+  }
+
+  triggerVictory(){
+    this.state=GameState.VICTORY;
+    audio.playDragonDefeated();
+    setTimeout(()=>{ audio.playVictoryMusic(); this.showVictoryScreen(); },700);
+  }
+
+  showVictoryScreen(){
+    document.getElementById('final-score').textContent=this.score;
+    document.getElementById('final-correct').textContent=this.correctCount;
+    document.getElementById('final-wrong').textContent=this.wrongCount;
+    document.getElementById('final-coins').textContent=this.coinsCollected;
+    const tot=this.correctCount+this.wrongCount;
+    const acc=tot>0?Math.round(this.correctCount/tot*100):100;
+    document.getElementById('final-accuracy').textContent=acc+'%';
+    // Pre-fill name if we know it
+    const vi=document.getElementById('victory-name-input');
+    vi.value=this.playerName||'';
+    document.getElementById('saved-msg').style.display='none';
+    document.getElementById('victory-screen').classList.add('active');
+    startFireworks();
+  }
+
+  triggerGameOver(){
+    this.state=GameState.GAMEOVER;
+    audio.playGameOverMusic();
+    setTimeout(()=>document.getElementById('gameover-screen').classList.add('active'),400);
+  }
+
+  /* UPDATE */
+  update(dt){
+    this.timeT+=dt;
+    if(this.state===GameState.PLAYING||this.state===GameState.BOSS){
+      this.player.update(this.level.platforms);
+      const tc=this.player.x-viewW*.4;
+      this.camX+=(tc-this.camX)*.12;
+      this.camX=Math.max(0,Math.min(this.camX,WORLD_WIDTH-viewW));
+
+      for(const c of this.level.coins){
+        if(c.collected) continue;
+        c.update(this.timeT);
+        const dx=(this.player.x+this.player.w/2)-c.x;
+        const dy=(this.player.y+this.player.h/2)-c.y;
+        if(dx*dx+dy*dy<900) this.addCoin(c);
+      }
+
+      for(const o of this.level.obstacles){
+        if(!o.alive) continue;
+        o.update();
+        const px=this.player.x,py=this.player.y,pw=this.player.w,ph=this.player.h;
+        if(px<o.x+o.w&&px+pw>o.x&&py<o.y+o.h&&py+ph>o.y){
+          if(this.player.vy>2&&py+ph-o.y<16){
+            o.alive=false; this.player.vy=JUMP_FORCE*.6;
+            this.score+=15; audio.playMonster();
+          } else { this.loseHeart(); this.player.vx=-this.player.facing*6; }
+        }
+      }
+
+      // Checkpoints
+      const cps=this.level.checkpoints;
+      for(let i=0;i<cps.length;i++){
+        if(!this.checkpointsPassed[i]&&this.player.x+this.player.w/2>cps[i]){
+          this.checkpointsPassed[i]=true;
+          setTimeout(()=>{
+            if(this.state===GameState.PLAYING||this.state===GameState.BOSS)
+              this.triggerQuestion();
+          },180);
+          break;
+        }
+      }
+
+      // Dragon
+      this.dragon.update();
+      if(!this.dragon.defeated){
+        const ddx=(this.player.x+this.player.w/2)-(this.dragon.x+this.dragon.w/2);
+        const ddy=(this.player.y+this.player.h/2)-(this.dragon.y+this.dragon.h/2);
+        const dist=Math.sqrt(ddx*ddx+ddy*ddy)||1;
+        const R=85;
+        if(dist<R){
+          const ov=R-dist,nx=ddx/dist;
+          this.player.x+=nx*ov;
+          if(Math.sign(this.player.vx)!==Math.sign(nx)) this.player.vx=0;
+        }
+        if(!this.dragonHasRoared&&dist<300){
+          this.dragonHasRoared=true;
+          audio.playDragonRoar(); audio.playBossMusic();
+        }
+        const allDone=this.checkpointsPassed.every(p=>p);
+        if(allDone&&dist<200&&this.state!==GameState.QUESTION){
+          const now=Date.now();
+          if(!this._lastBonusTime) this._lastBonusTime=now;
+          if(now-this._lastBonusTime>2500){
+            this._lastBonusTime=now; this.triggerQuestion();
+          }
+        }
+      }
+
+      this.particles=this.particles.filter(p=>p.alive);
+      this.particles.forEach(p=>p.update());
+      if(this.shakeTimer>0) this.shakeTimer--;
+    }
+  }
+}
+
+let game=new GameManager();
+
+/* ── FIREWORKS ─────────────────────────────────────────────── */
+const fwc=document.getElementById('fireworks-canvas');
+const fwx=fwc.getContext('2d');
+let fwParts=[],fwTimer=null,fwRAF=null;
+const FW_COLS=['#C0392B','#F0C040','#1A6B4A','#87CEEB','#FF6B6B','#DDA8E8'];
+function resizeFW(){
+  fwc.width=window.innerWidth*DPR; fwc.height=window.innerHeight*DPR;
+  fwc.style.width=window.innerWidth+'px'; fwc.style.height=window.innerHeight+'px';
+  fwx.setTransform(DPR,0,0,DPR,0,0);
+}
+window.addEventListener('resize',resizeFW);
+function spawnFW(){
+  const x=Math.random()*window.innerWidth;
+  const y=60+Math.random()*window.innerHeight*.4;
+  const col=FW_COLS[Math.floor(Math.random()*FW_COLS.length)];
+  for(let i=0;i<30;i++){
+    const a=(Math.PI*2*i)/30+Math.random()*.2,sp=2+Math.random()*3.5;
+    fwParts.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
+      color:col,life:55+Math.random()*18,maxLife:73,size:2+Math.random()*2});
+  }
+  audio.playFirework();
+}
+function animFW(){
+  fwx.clearRect(0,0,window.innerWidth,window.innerHeight);
+  fwParts.forEach(p=>{
+    p.x+=p.vx;p.y+=p.vy;p.vy+=.04;p.vx*=.99;p.life--;
+    fwx.save();fwx.globalAlpha=Math.max(0,p.life/p.maxLife);
+    fwx.fillStyle=p.color;fwx.beginPath();
+    fwx.arc(p.x,p.y,p.size,0,Math.PI*2);fwx.fill();fwx.restore();
+  });
+  fwParts=fwParts.filter(p=>p.life>0);
+  fwRAF=requestAnimationFrame(animFW);
+}
+function startFireworks(){ resizeFW();fwParts=[];spawnFW();
+  fwTimer=setInterval(spawnFW,600);animFW(); }
+function stopFireworks(){
+  clearInterval(fwTimer);fwTimer=null;
+  if(fwRAF){cancelAnimationFrame(fwRAF);fwRAF=null;}
+  fwParts=[];fwx.clearRect(0,0,window.innerWidth,window.innerHeight);
+}
+
+/* ── RENDERING ─────────────────────────────────────────────── */
+function rr(cx,x,y,w,h,r){
+  cx.beginPath();cx.moveTo(x+r,y);cx.arcTo(x+w,y,x+w,y+h,r);
+  cx.arcTo(x+w,y+h,x,y+h,r);cx.arcTo(x,y+h,x,y,r);cx.arcTo(x,y,x+w,y,r);
+  cx.closePath();
+}
+
+function drawBG(g){
+  const sky=ctx.createLinearGradient(0,0,0,viewH);
+  sky.addColorStop(0,'#87CEEB');sky.addColorStop(.7,'#E0F4FF');
+  sky.addColorStop(1,'#E8F9E0');ctx.fillStyle=sky;ctx.fillRect(0,0,viewW,viewH);
+  // Sun
+  ctx.save();ctx.fillStyle='#FFE98A';ctx.beginPath();
+  ctx.arc(viewW*.85,80,44,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(255,233,138,.35)';ctx.beginPath();
+  ctx.arc(viewW*.85,80,62,0,Math.PI*2);ctx.fill();ctx.restore();
+  // Clouds
+  ctx.fillStyle='rgba(255,255,255,.9)';
+  for(const c of g.bg.clouds){
+    const sx=c.x-g.camX*.2;
+    if(sx<-150||sx>viewW+150) continue;
+    drawCloud(sx,c.y,c.s);
+  }
+  ctx.fillStyle='#BFE8AE';
+  for(const h of g.bg.hillsFar){
+    const sx=h.x-g.camX*.4;if(sx<-h.w||sx>viewW+h.w)continue;
+    drawHill(sx,viewH*.62,h.w,88);
+  }
+  ctx.fillStyle='#9FDB8A';
+  for(const h of g.bg.hillsNear){
+    const sx=h.x-g.camX*.7;if(sx<-h.w||sx>viewW+h.w)continue;
+    drawHill(sx,viewH*.7,h.w,68);
+  }
+}
+function drawCloud(x,y,s){
+  ctx.beginPath();ctx.arc(x,y,20*s,0,Math.PI*2);
+  ctx.arc(x+22*s,y-10*s,24*s,0,Math.PI*2);
+  ctx.arc(x+46*s,y,20*s,0,Math.PI*2);
+  ctx.arc(x+22*s,y+8*s,22*s,0,Math.PI*2);ctx.fill();
+}
+function drawHill(x,by,w,h){
+  ctx.beginPath();ctx.moveTo(x-w/2,by+h);
+  ctx.quadraticCurveTo(x,by-h,x+w/2,by+h);ctx.closePath();ctx.fill();
+}
+function drawTree(x,y,s){
+  ctx.save();ctx.translate(x,y);ctx.scale(s,s);
+  ctx.fillStyle='#8A5A32';rr(ctx,-6,-10,12,40,4);ctx.fill();
+  ctx.fillStyle='#4F9D5E';ctx.beginPath();
+  ctx.arc(0,-40,26,0,Math.PI*2);ctx.arc(-20,-25,20,0,Math.PI*2);
+  ctx.arc(20,-25,20,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#62B873';ctx.beginPath();ctx.arc(-8,-46,16,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+}
+
+function drawGround(g){
+  for(const p of g.level.platforms){
+    const sx=p.x-g.camX;if(sx+p.w<-50||sx>viewW+50) continue;
+    if(p.h>100){
+      ctx.fillStyle='#CAA472';ctx.fillRect(sx,p.y+14,p.w,Math.min(p.h,viewH));
+      ctx.fillStyle='#5FA777';ctx.fillRect(sx,p.y,p.w,18);
+      ctx.fillStyle='#7FC794';ctx.fillRect(sx,p.y,p.w,6);
+    } else {
+      ctx.fillStyle='#A8763F';rr(ctx,sx,p.y+8,p.w,p.h-6,8);ctx.fill();
+      ctx.fillStyle='#7FC794';rr(ctx,sx,p.y,p.w,12,6);ctx.fill();
+    }
+  }
+  for(const t of g.bg.trees){
+    const sx=t.x-g.camX*.9;if(sx<-60||sx>viewW+60)continue;
+    drawTree(sx,g.level.groundY||520,t.s);
+  }
+}
+
+/* Lantern checkpoints — signature design element */
+function drawLanterns(g){
+  const cps=g.level.checkpoints;if(!cps) return;
+  const lvlCols=['#F0C040','#1A6B4A','#C0392B'];
+  cps.forEach((cx,i)=>{
+    const sx=cx-g.camX;if(sx<-80||sx>viewW+80) return;
+    const gy=520,done=g.checkpointsPassed[i];
+    const lvl=i<5?0:i<10?1:2;
+    const col=done?'#F0C040':lvlCols[lvl];
+    const isStart=(i===0||i===5||i===10);
+    const postH=isStart?110:80;
+    ctx.save();
+    // Post (bamboo-style)
+    const pg=ctx.createLinearGradient(sx-3,0,sx+3,0);
+    pg.addColorStop(0,'#8B7355');pg.addColorStop(.5,'#D4B483');pg.addColorStop(1,'#8B7355');
+    ctx.fillStyle=pg;ctx.fillRect(sx-3,gy-postH,6,postH);
+    // Lantern body
+    const lx=sx,ly=gy-postH-22,lw=done?36:28,lh=done?46:36;
+    // Glow when done
+    if(done){
+      const grd=ctx.createRadialGradient(lx,ly,2,lx,ly,28);
+      grd.addColorStop(0,'rgba(240,192,64,.5)');grd.addColorStop(1,'rgba(240,192,64,0)');
+      ctx.fillStyle=grd;ctx.beginPath();ctx.arc(lx,ly,28,0,Math.PI*2);ctx.fill();
+    }
+    // Lantern shape
+    ctx.fillStyle=done?'#F0C040':col;
+    ctx.beginPath();ctx.ellipse(lx,ly,lw/2,lh/2,0,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle=done?'#9A7400':'rgba(0,0,0,.3)';ctx.lineWidth=2;ctx.stroke();
+    // Lantern ribs
+    ctx.strokeStyle='rgba(0,0,0,.2)';ctx.lineWidth=1;
+    for(let r=-2;r<=2;r++){
+      ctx.beginPath();ctx.ellipse(lx,ly,lw/2,4,0,0,Math.PI*2);
+      ctx.translate(0,r*8);ctx.stroke();ctx.translate(0,-r*8);
+    }
+    // Symbol inside
+    ctx.fillStyle=done?'#8B0000':'#fff';
+    ctx.font=`bold ${done?18:14}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(done?'✓':'？',lx,ly);
+    // Tassel
+    ctx.strokeStyle=done?'#C0392B':'#888';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(lx,ly+lh/2);ctx.lineTo(lx,ly+lh/2+10);ctx.stroke();
+    // Cap
+    ctx.fillStyle='#8B7355';rr(ctx,lx-lw/2-2,ly-lh/2-6,lw+4,8,3);ctx.fill();
+    // Level label for start
+    if(isStart){
+      ctx.fillStyle=done?'rgba(240,192,64,.9)':'rgba(255,255,255,.9)';
+      ctx.font='bold 10px sans-serif';ctx.textAlign='center';
+      ctx.fillText(['Mudah','Sederhana','Susah'][[0,5,10].indexOf(i)],lx,gy-postH-lh/2-12);
+    }
+    ctx.restore();
+  });
+}
+
+function drawCoins(g){
+  for(const c of g.level.coins){
+    if(c.collected) continue;
+    const sx=c.x-g.camX;if(sx<-30||sx>viewW+30)continue;
+    ctx.save();ctx.translate(sx,c.y);
+    const wb=Math.abs(Math.sin(g.timeT*3+c.bobOffset));
+    ctx.scale(.6+wb*.4,1);
+    ctx.fillStyle='#F0C040';ctx.beginPath();ctx.arc(0,0,12,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#FFF3B0';ctx.beginPath();ctx.arc(-3,-3,5,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#C9941F';ctx.lineWidth=2;ctx.beginPath();
+    ctx.arc(0,0,12,0,Math.PI*2);ctx.stroke();ctx.restore();
+  }
+}
+
+function drawObstacle(o,camX){
+  if(!o.alive) return;
+  const sx=o.x-camX;if(sx<-60||sx>viewW+60)return;
+  const bob=Math.sin(o.bobT)*3;
+  ctx.save();ctx.translate(sx,o.y+bob);
+  ctx.fillStyle='#D9472B';ctx.beginPath();
+  ctx.arc(o.w/2,8,o.w/2,Math.PI,0);ctx.fill();
+  ctx.fillStyle='#FFE9D6';ctx.beginPath();
+  ctx.arc(o.w*.3,4,4,0,Math.PI*2);ctx.arc(o.w*.65,2,5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#FFE9D6';rr(ctx,o.w*.18,8,o.w*.64,o.h-8,6);ctx.fill();
+  ctx.fillStyle='#3D2B1F';ctx.beginPath();
+  ctx.arc(o.w*.36,o.h-8,2.6,0,Math.PI*2);ctx.arc(o.w*.64,o.h-8,2.6,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+}
+
+function drawPlayer(p,camX,t){
+  const sx=p.x-camX;
+  const blink=p.invincibleTimer>0&&Math.floor(t*10)%2===0;
+  if(blink)ctx.globalAlpha=.4;
+  ctx.save();ctx.translate(sx+p.w/2,p.y+p.h/2);ctx.scale(p.facing*p.squash,2-p.squash);
+  const ew=Math.sin(t*8)*4;
+  ctx.fillStyle='#fff';rr(ctx,-16,-38+ew*.2,9,26,5);ctx.fill();
+  rr(ctx,7,-38-ew*.2,9,26,5);ctx.fill();
+  ctx.fillStyle='#FFB6C1';rr(ctx,-13.5,-33+ew*.2,4,16,3);ctx.fill();
+  rr(ctx,9.5,-33-ew*.2,4,16,3);ctx.fill();
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.ellipse(0,4,19,18,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#FFEEF2';ctx.beginPath();ctx.ellipse(2,8,11,11,0,0,Math.PI*2);ctx.fill();
+  const ls=p.onGround?Math.sin(t*10)*6:0;
+  ctx.fillStyle='#fff';
+  rr(ctx,-12,14+Math.max(0,ls),9,10,4);ctx.fill();
+  rr(ctx,4,14+Math.max(0,-ls),9,10,4);ctx.fill();
+  ctx.fillStyle='#3D2B1F';ctx.beginPath();ctx.arc(7,-2,2.6,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#FF8FA3';ctx.beginPath();ctx.arc(13,3,2.6,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#3D2B1F';ctx.lineWidth=1.6;ctx.beginPath();
+  ctx.arc(11,6,3,.2,Math.PI*.6);ctx.stroke();
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(-18,10,6,0,Math.PI*2);ctx.fill();
+  ctx.restore();ctx.globalAlpha=1;
+}
+
+function drawDragon(d,camX,t){
+  const sx=d.x-camX;if(sx<-250||sx>viewW+250)return;
+  const bob=Math.sin(d.bobT)*6;
+  const shx=d.shakeT>0?(Math.random()-.5)*9:0;
+  ctx.save();ctx.translate(sx+d.w/2+shx,d.y+d.h/2+bob);
+  if(d.defeated) ctx.globalAlpha=Math.max(0,.8-game.timeT*.15);
+  const hf=d.hitFlash>0;
+  // wings
+  ctx.fillStyle=hf?'#FFB3B3':'#7A5AAD';
+  const wf=Math.sin(t*4)*10;
+  ctx.beginPath();ctx.moveTo(-30,-10);ctx.quadraticCurveTo(-85,-50+wf,-60,10);
+  ctx.quadraticCurveTo(-50,-5,-30,5);ctx.fill();
+  ctx.beginPath();ctx.moveTo(30,-10);ctx.quadraticCurveTo(85,-50-wf,60,10);
+  ctx.quadraticCurveTo(50,-5,30,5);ctx.fill();
+  // body — imperial red instead of purple for Chinese theme
+  ctx.fillStyle=hf?'#FFCCCC':'#C0392B';
+  ctx.beginPath();ctx.ellipse(0,10,48,38,0,0,Math.PI*2);ctx.fill();
+  // belly plates — gold
+  ctx.fillStyle='#F0C040';
+  for(let i=0;i<3;i++){ctx.beginPath();ctx.ellipse(-10+i*16,22+i,10,7,0,0,Math.PI*2);ctx.fill();}
+  // head
+  ctx.fillStyle=hf?'#FFCCCC':'#D9472B';
+  ctx.beginPath();ctx.ellipse(46,-8,26,22,-.1,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(68,-2,14,11,0,0,Math.PI*2);ctx.fill();
+  // horns — gold
+  ctx.fillStyle='#F0C040';
+  ctx.beginPath();ctx.moveTo(32,-26);ctx.lineTo(26,-42);ctx.lineTo(40,-30);ctx.closePath();ctx.fill();
+  ctx.beginPath();ctx.moveTo(48,-28);ctx.lineTo(48,-46);ctx.lineTo(58,-32);ctx.closePath();ctx.fill();
+  // eyes
+  ctx.fillStyle='#F0C040';ctx.beginPath();ctx.arc(54,-12,6,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#1C1C2E';ctx.beginPath();ctx.arc(56,-12,2.6,0,Math.PI*2);ctx.fill();
+  // nostrils
+  ctx.fillStyle='#1C1C2E';ctx.beginPath();
+  ctx.arc(78,-4,1.6,0,Math.PI*2);ctx.arc(80,1,1.6,0,Math.PI*2);ctx.fill();
+  if(Math.sin(t*2)>.7){
+    ctx.fillStyle='rgba(200,200,200,.45)';ctx.beginPath();
+    ctx.arc(86,-6,4,0,Math.PI*2);ctx.fill();
+  }
+  // tail
+  ctx.strokeStyle=hf?'#FFCCCC':'#C0392B';ctx.lineWidth=16;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(-44,16);
+  ctx.quadraticCurveTo(-90,30+Math.sin(t*3)*8,-70,-10);ctx.stroke();
+  ctx.fillStyle='#F0C040';
+  ctx.beginPath();ctx.moveTo(-70,-10);ctx.lineTo(-78,-22);ctx.lineTo(-62,-16);
+  ctx.closePath();ctx.fill();
+  // Heart bubble
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  const bx=0,by=-72;
+  ctx.fillStyle='rgba(255,255,255,.88)';
+  rr(ctx,bx-28,by-14,56,28,10);ctx.fill();
+  ctx.strokeStyle='#1A6B4A';ctx.lineWidth=2;ctx.stroke();
+  ctx.font='bold 14px sans-serif';ctx.fillStyle=d.hearts>0?'#1A6B4A':'#C0392B';
+  ctx.fillText(`💚 ${d.hearts}`,bx,by);
+  ctx.restore();ctx.globalAlpha=1;
+}
+
+function drawParticles(g){
+  for(const p of g.particles){
+    const sx=p.x-g.camX;ctx.save();
+    ctx.globalAlpha=Math.max(0,p.life/p.maxLife);
+    ctx.fillStyle=p.color;ctx.beginPath();
+    ctx.arc(sx,p.y,p.size,0,Math.PI*2);ctx.fill();ctx.restore();
+  }
+}
+
+function render(g){
+  ctx.clearRect(0,0,viewW,viewH);
+  ctx.save();
+  if(g.shakeTimer>0){
+    const m=g.shakeMag*(g.shakeTimer/16);
+    ctx.translate((Math.random()-.5)*m,(Math.random()-.5)*m);
+  }
+  drawBG(g);drawGround(g);drawLanterns(g);drawCoins(g);
+  for(const o of g.level.obstacles) drawObstacle(o,g.camX);
+  drawDragon(g.dragon,g.camX,g.timeT);
+  drawPlayer(g.player,g.camX,g.timeT);
+  drawParticles(g);
+  ctx.restore();
+}
+
+/* ── UI WIRING ─────────────────────────────────────────────── */
+// Name screen
+document.getElementById('name-start-btn').addEventListener('click',()=>{
+  audio.init(); audio.resume();
+  const nm=document.getElementById('name-input').value.trim();
+  game.playerName=nm||'Wira';
+  document.getElementById('name-screen').classList.add('hidden');
+  document.getElementById('start-player-name').textContent=`👤 ${game.playerName}, Semangat!`;
+  document.getElementById('start-screen').classList.remove('hidden');
+});
+document.getElementById('name-input').addEventListener('keydown',e=>{
+  if(e.key==='Enter') document.getElementById('name-start-btn').click();
+});
+
+// Name screen leaderboard
+document.getElementById('name-leaderboard-btn').addEventListener('click',()=>{
+  Leaderboard.render('lb-table');
+  document.getElementById('leaderboard-screen').classList.add('active');
+  document.getElementById('lb-close-btn')._from='name';
+});
+
+// Start
+document.getElementById('start-btn').addEventListener('click',()=>{
+  audio.resume();
+  document.getElementById('start-screen').classList.add('hidden');
+  game.start();
+});
+
+// Sound
+let soundOn=true;
+document.getElementById('sound-toggle').addEventListener('click',()=>{
+  soundOn=!soundOn; audio.setEnabled(soundOn);
+  document.getElementById('sound-toggle').textContent=soundOn?'🔊':'🔇';
+});
+
+// Save score
+document.getElementById('save-score-btn').addEventListener('click',()=>{
+  const nm=document.getElementById('victory-name-input').value.trim()||game.playerName||'Wira';
+  Leaderboard.add(nm,game.score,game.correctCount,game.wrongCount,game.coinsCollected);
+  document.getElementById('saved-msg').style.display='block';
+  document.getElementById('save-score-btn').disabled=true;
+  document.getElementById('save-score-btn').textContent='✅ Sudah Disimpan';
+});
+
+// View leaderboard from victory
+document.getElementById('view-lb-btn').addEventListener('click',()=>{
+  Leaderboard.render('lb-table');
+  document.getElementById('leaderboard-screen').classList.add('active');
+  document.getElementById('lb-close-btn')._from='victory';
+});
+
+// Leaderboard close
+document.getElementById('lb-close-btn').addEventListener('click',()=>{
+  document.getElementById('leaderboard-screen').classList.remove('active');
+});
+
+// Leaderboard clear
+document.getElementById('lb-clear-btn').addEventListener('click',()=>{
+  if(confirm('Padam semua rekod papan kedudukan?')){
+    Leaderboard.clear(); Leaderboard.render('lb-table');
+  }
+});
+
+// Play again
+document.getElementById('play-again-btn').addEventListener('click',()=>{
+  audio.resume(); stopFireworks();
+  document.getElementById('victory-screen').classList.remove('active');
+  game.reset();
+});
+
+// Retry
+document.getElementById('retry-btn').addEventListener('click',()=>{
+  audio.resume();
+  document.getElementById('gameover-screen').classList.remove('active');
+  game.reset();
+});
+
+/* ── MAIN LOOP ─────────────────────────────────────────────── */
+function gameLoop(now){
+  const dt=Math.min(.05,(now-game.lastFrameTime)/1000);
+  game.lastFrameTime=now;
+  if(game.state===GameState.PLAYING||game.state===GameState.BOSS)
+    game.update(dt);
+  render(game);
+  requestAnimationFrame(gameLoop);
+}
+requestAnimationFrame(gameLoop);
+
+document.addEventListener('visibilitychange',()=>{
+  if(!audio.ctx) return;
+  document.hidden?audio.ctx.suspend():audio.ctx.resume();
+});
+
+})();
+</script>
+</body>
+</html>
